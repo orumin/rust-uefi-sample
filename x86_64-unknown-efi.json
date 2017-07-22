@@ -1,0 +1,16 @@
+{
+    "arch": "x86_64",
+    "os": "efi",
+    "llvm-target": "x86_64-efi-none-gnu",
+    "target-endian": "little",
+    "target-pointer-width": "64",
+    "function-sections": false,
+    "no-compiler-rt": true,
+    "data-layout": "e-m:e-i64:64-f80:128-n8:16:32:64-S128",
+    "linker": "x86_64-efi-pe",
+    "linker-flavor": "ld",
+    "pre-link-args": [
+        "subsystem",
+        "10"
+    ]
+}

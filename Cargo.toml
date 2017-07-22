@@ -1,0 +1,18 @@
+[package]
+name = "uefi-sample"
+version = "0.1.0"
+authors = ["orumin <dev@orum.in>"]
+
+[dependencies]
+uefi = { git = "https://github.com/orumin/rust-uefi", branch = "beta" }
+rlibc = "1.0"
+compiler_builtins = { git = "https://github.com/rust-lang-nursery/compiler-builtins" }
+
+[lib]
+crate-type = ["staticlib"]
+
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic = "abort"
