@@ -1,4 +1,5 @@
 #![no_std]
+#![no_main]
 #![feature(asm)]
 #![feature(intrinsics)]
 #![feature(lang_items)]
@@ -6,13 +7,17 @@
 
 extern crate uefi;
 extern crate rlibc;
-extern crate compiler_builtins;
 
 use uefi::SimpleTextOutput;
 use uefi::graphics::{PixelFormat,Pixel};
+use core::panic::PanicInfo;
 use core::num::Wrapping;
 use core::mem;
 use core::fmt::Write;
+
+// workarround of https://github.com/rust-lang/rust/issues/62785
+#[no_mangle]
+pub static _fltused: u32 = 0;
 
 pub struct Writer {}
 
@@ -50,7 +55,7 @@ pub extern "win64" fn efi_main(hdl: uefi::Handle, sys: uefi::SystemTable) -> uef
     uefi::get_system_table().console().write_raw(uefi::get_system_table().vendor());
     uefi::get_system_table().console().write("\n\r");
 
-    let tm = rs.get_time().unwrap();
+//    let tm = rs.get_time().unwrap();
 //    let mut xorshift_value = Wrapping(tm.nanosecond as u64);
     let mut xorshift_value = Wrapping(14312312512314u64);
     let mut xorshift = ||{
@@ -69,15 +74,15 @@ pub extern "win64" fn efi_main(hdl: uefi::Handle, sys: uefi::SystemTable) -> uef
     let bitmap = bs.allocate_pool::<Pixel>(mem::size_of::<Pixel>() * AREA).unwrap();
     loop {
         let px = Pixel::new((xorshift() % 255) as u8, (xorshift() % 255) as u8, (xorshift() % 255) as u8);
-        //let mut writer = Writer {};
-        //write!(writer, "red: {}, blue: {}, green: {}\n\r", px.red, px.blue, px.green).unwrap();
+        let mut writer = Writer {};
+        write!(writer, "red: {}, blue: {}, green: {}\n\r", px.red, px.blue, px.green).unwrap();
         let mut count = 0;
         while count < AREA {
             unsafe{*bitmap.offset(count as isize) = px.clone()};
             count += 1;
         }
         gop.draw(bitmap, resolutin_w/2-400, resolutin_h/2-300, 800, 600);
-        bs.stall(100000);
+        bs.stall(1000000);
     }
 
     let (memory_map, memory_map_size, map_key, descriptor_size, descriptor_version) = uefi::lib_memory_map();
@@ -108,11 +113,9 @@ pub extern "C" fn _Unwind_Resume() -> ! {
 #[no_mangle]
 pub extern fn rust_eh_personality() {}
 
-#[lang = "panic_fmt"]
+#[panic_handler]
 #[no_mangle]
-pub extern fn rust_begin_panic(_msg: core::fmt::Arguments,
-                               _file: &'static str,
-                               _line: u32) -> ! {
+pub extern fn panic(_info: &PanicInfo) -> ! {
     loop {}
 }
 

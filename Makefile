@@ -1,28 +1,16 @@
 ARCH		= x86_64
-TARGET_ARCH		= $(ARCH)-unknown-efi
+TARGET_ARCH		= $(ARCH)-unknown-uefi
 BUILD_ROOT	= build
 LOADER		= bootx64.efi
 HD_IMG		= boot.img
 
-OBJS	    = target/$(TARGET_ARCH)/debug/libuefi-sample.a
+OBJS	    = target/$(TARGET_ARCH)/debug/uefi-sample.efi
 
-FORMAT		= efi-app-$(ARCH)
-LDFLAGS		= --gc-sections --oformat pei-x86-64 --subsystem 10 -pie -e efi_main
-
-prefix		= x86_64-efi-pe-
-CC			= gcc
-CXX			= g++
-#CC			= $(prefix)gcc
-#CXX			= $(prefix)g++
-LD			= $(prefix)ld
-AS			= $(prefix)as
-AR			= $(prefix)ar
-OBJCOPY		= $(prefix)objcopy
 MFORMAT		= mformat
 MMD			= mmd
 MCOPY		= mcopy
 RUSTC		= rustc
-CARGO		= xargo
+CARGO		= cargo
 
 SRC	= $(wildcard src/*.rs)
 
@@ -33,12 +21,11 @@ TARGET = $(BUILD_ROOT)/$(LOADER)
 all: $(TARGET)
 
 $(OBJS): $(SRC)
-	$(CARGO) build --target $(TARGET_ARCH)
-	cd target/$(TARGET_ARCH)/debug && $(AR) x *.a
+	$(CARGO) xbuild --target $(TARGET_ARCH)
 
 $(TARGET): $(OBJS)
 	@mkdir -p $(BUILD_ROOT)
-	$(LD) $(LDFLAGS) -o $@ $(dir $(OBJS))*.o
+	cp $^ $@
 
 img: $(BUILD_ROOT)/$(HD_IMG)
 
@@ -51,7 +38,8 @@ $(BUILD_ROOT)/$(HD_IMG): $(TARGET)
 	@mv fat.img $(BUILD_ROOT)/$(HD_IMG)
 
 run: img
-	qemu-system-x86_64 -enable-kvm -net none -m 1024 -bios ovmf.fd -usb -usbdevice disk::$(BUILD_ROOT)/$(HD_IMG)
+	qemu-system-x86_64 -net none -m 1024 -bios ovmf.fd $(BUILD_ROOT)/$(HD_IMG)
+#	qemu-system-x86_64 -enable-kvm -net none -m 1024 -bios ovmf.fd -usb -usbdevice disk::$(BUILD_ROOT)/$(HD_IMG)
 
 clean:
 	@$(CARGO) clean
